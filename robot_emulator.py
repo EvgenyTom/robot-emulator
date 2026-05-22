@@ -1,17 +1,13 @@
 #!/usr/bin/env python3
 """
-Эмулятор клавиш для робота.
-Правила:
-- Shift+S -> нажать Shift+S, потом Z
-- A, D, W -> нажать Shift+клавиша, потом Z, потом просто клавиша
-- Остальные (J, K, L, M, N...) -> только клавиша
-После каждого нажатия делается пауза (задержка).
+Эмулятор клавиш для робота (исправленная версия).
+Использует pydirectinput для надёжной отправки в игры.
 """
 
 import sys
 import time
 import argparse
-import pydirectinput as pyautogui
+import pydirectinput
 
 def main():
     parser = argparse.ArgumentParser(description="Эмулятор команд для робота")
@@ -26,10 +22,12 @@ def main():
             lines = [line.strip() for line in f if line.strip() != ""]
     except FileNotFoundError:
         print(f"Ошибка: файл '{args.commands_file}' не найден.")
+        input("Нажмите Enter для выхода...")
         sys.exit(1)
 
     if len(lines) < 2:
         print("Ошибка: файл должен содержать минимум две строки (ширина и высота).")
+        input("Нажмите Enter для выхода...")
         sys.exit(1)
 
     try:
@@ -38,6 +36,7 @@ def main():
         commands = lines[2:]
     except ValueError:
         print("Ошибка: первые две строки должны быть целыми числами.")
+        input("Нажмите Enter для выхода...")
         sys.exit(1)
 
     print(f"Размер поля: {width} x {height}")
@@ -51,31 +50,40 @@ def main():
         print(f"[{i}/{len(commands)}] {cmd}")
 
         if cmd == "Shift+S":
-            # 1. Shift+S
-            pyautogui.hotkey('shift', 's')
-            time.sleep(args.delay)
-            # 2. Z
-            pyautogui.press('z')
+            # 1. Нажать Shift+S (вручную)
+            pydirectinput.keyDown('shift')
+            time.sleep(0.05)
+            pydirectinput.press('s')
+            time.sleep(0.05)
+            pydirectinput.keyUp('shift')
+            time.sleep(0.05)
+            # 2. Нажать Z
+            pydirectinput.press('z')
             time.sleep(args.delay)
 
         elif cmd in ("A", "D", "W"):
-            key = cmd.lower()  # 'a', 'd', 'w'
-            # 1. Shift + клавиша
-            pyautogui.hotkey('shift', key)
+            key = cmd.lower()
+            # 1. Нажать Shift+клавиша
+            pydirectinput.keyDown('shift')
+            time.sleep(0.05)
+            pydirectinput.press(key)
+            time.sleep(0.05)
+            pydirectinput.keyUp('shift')
+            time.sleep(0.05)
+            # 2. Нажать Z
+            pydirectinput.press('z')
             time.sleep(args.delay)
-            # 2. Z
-            pyautogui.press('z')
-            time.sleep(args.delay)
-            # 3. просто клавиша
-            pyautogui.press(key)
+            # 3. Нажать просто клавишу
+            pydirectinput.press(key)
             time.sleep(args.delay)
 
         else:
-            # Остальные команды (J, K, L, M, N...)
-            pyautogui.press(cmd.lower())
+            # Остальные команды (J, K, L, M, N, ...)
+            pydirectinput.press(cmd.lower())
             time.sleep(args.delay)
 
     print("✅ Эмуляция завершена.")
+    input("Нажмите Enter для выхода...")
 
 if __name__ == "__main__":
     main()
