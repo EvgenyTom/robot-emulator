@@ -11,7 +11,7 @@
 import sys
 import time
 import argparse
-import pyautogui
+import pydirectinput as pyautogui
 
 def main():
     parser = argparse.ArgumentParser(description="Эмулятор команд для робота")
