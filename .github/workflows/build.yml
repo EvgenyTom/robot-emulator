@@ -1,4 +1,4 @@
-name: Build EXE with Nuitka
+name: Build EXE
 
 on:
   push:
@@ -9,23 +9,23 @@ jobs:
   build:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.11'
 
       - name: Install dependencies
         run: |
-          pip install nuitka pyautogui
+          pip install pyinstaller pyautogui
 
-      - name: Build EXE with Nuitka
+      - name: Build EXE
         run: |
-          nuitka --standalone --onefile --windows-console-mode=disable --enable-plugin=pyqt5 --include-data-dir=./resources=./resources --output-dir=dist your_script.py
+          pyinstaller --onefile --console robot_emulator.py
 
-      - name: Upload EXE as artifact
-        uses: actions/upload-artifact@v4
+      - name: Upload artifact
+        uses: actions/upload-artifact@v6
         with:
-          name: your_program_exe
-          path: dist/*.exe
+          name: robot_emulator
+          path: dist/robot_emulator.exe
