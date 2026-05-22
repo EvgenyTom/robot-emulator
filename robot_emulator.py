@@ -1,14 +1,9 @@
 #!/usr/bin/env python3
 """
-Робот-эмулятор клавиш.
-Читает текстовый файл (формат: ширина, высота, затем список команд).
-Для каждой команды:
-  1. Нажимает клавишу Z
-  2. Нажимает основную клавишу/комбинацию
-  3. Ждёт заданную задержку (по умолчанию 1 секунда)
-
-Требования: установить pyautogui
-   pip install pyautogui
+Робот-эмулятор клавиш (исправленная версия)
+Поддерживает:
+- Запуск с аргументом: robot_emulator.exe commands.txt --delay 0.5
+- Запуск без аргументов: программа попросит ввести имя файла
 """
 
 import sys
@@ -16,44 +11,57 @@ import time
 import argparse
 import pyautogui
 
-# Небольшая пауза между нажатием Z и основной командой (сек)
-PAUSE_AFTER_Z = 0.05
+# Настройки
+DEFAULT_DELAY = 1.0          # задержка между командами (сек)
+PAUSE_AFTER_Z = 0.05         # пауза между Z и основной клавишей
 
-def parse_arguments():
-    parser = argparse.ArgumentParser(description="Эмуляция нажатий клавиш для робота из текстового файла.")
-    parser.add_argument("commands_file", help="Путь к текстовому файлу с командами")
-    parser.add_argument("--delay", "-d", type=float, default=1.0,
-                        help="Задержка после каждой команды (секунды). По умолчанию 1.0")
-    parser.add_argument("--pause-after-z", type=float, default=0.05,
-                        help="Пауза между Z и основной клавишей (сек). По умолчанию 0.05")
-    return parser.parse_args()
-
-def press_command(command, pause_after_z):
+def press_command(command):
     """Выполняет одно действие: Z + основная клавиша."""
-    # 1. Нажать Z
+    print(f"   → Нажимаю Z, затем {command}")
     pyautogui.press('z')
-    time.sleep(pause_after_z)
-
-    # 2. Основная клавиша
+    time.sleep(PAUSE_AFTER_Z)
+    
     if command == "Shift+S":
         pyautogui.hotkey('shift', 's')
     else:
-        # Для одиночных клавиш (J, D, A, W, K, L, M, N и т.д.)
-        # Приводим к нижнему регистру, т.к. press ожидает 'j', а не 'J'
+        # Для одиночных клавиш (a, d, w, j, k, l, m, n...)
         pyautogui.press(command.lower())
 
 def main():
-    args = parse_arguments()
+    # --- Разбор аргументов командной строки ---
+    parser = argparse.ArgumentParser(description="Эмулятор клавиш для робота")
+    parser.add_argument("commands_file", nargs="?", help="Путь к файлу с командами")
+    parser.add_argument("--delay", "-d", type=float, default=DEFAULT_DELAY,
+                        help=f"Задержка после каждой команды (сек), по умолчанию {DEFAULT_DELAY}")
+    args = parser.parse_args()
 
+    # --- Получение имени файла ---
+    filename = args.commands_file
+    if not filename:
+        # Если не передан аргументом, спрашиваем у пользователя
+        filename = input("Введите имя файла с командами (например, robot_commands.txt): ").strip()
+        if not filename:
+            print("Ошибка: имя файла не может быть пустым.")
+            input("Нажмите Enter для выхода...")
+            sys.exit(1)
+
+    # --- Чтение файла ---
     try:
-        with open(args.commands_file, "r", encoding="utf-8") as f:
+        with open(filename, "r", encoding="utf-8") as f:
             lines = [line.strip() for line in f if line.strip() != ""]
     except FileNotFoundError:
-        print(f"Ошибка: файл {args.commands_file} не найден.")
+        print(f"Ошибка: файл '{filename}' не найден.")
+        input("Нажмите Enter для выхода...")
+        sys.exit(1)
+    except Exception as e:
+        print(f"Ошибка при чтении файла: {e}")
+        input("Нажмите Enter для выхода...")
         sys.exit(1)
 
+    # --- Проверка формата ---
     if len(lines) < 2:
         print("Ошибка: файл должен содержать минимум две строки (ширина и высота).")
+        input("Нажмите Enter для выхода...")
         sys.exit(1)
 
     try:
@@ -62,35 +70,38 @@ def main():
         commands = lines[2:]
     except ValueError:
         print("Ошибка: первые две строки должны быть целыми числами (ширина и высота).")
+        input("Нажмите Enter для выхода...")
         sys.exit(1)
 
+    # --- Вывод информации ---
+    print(f"\n{'='*50}")
     print(f"Размер поля: {width} x {height}")
     print(f"Всего команд: {len(commands)}")
-    print(f"Задержка после команды: {args.delay} сек")
-    print(f"Пауза после Z: {args.pause_after_z} сек")
-    print("Старт через 3 секунды... Наведите мышь на окно игры и не двигайте её.")
-    time.sleep(3)
-    print("Начинаем эмуляцию... Нажмите Ctrl+C для прерывания.")
+    print(f"Задержка между командами: {args.delay} сек")
+    print(f"Пауза после Z: {PAUSE_AFTER_Z} сек")
+    print(f"{'='*50}")
+    print("Переключитесь на окно игры в течение 5 секунд...")
+    time.sleep(5)
+    print("НАЧИНАЮ ЭМУЛЯЦИЮ. Для остановки нажмите Ctrl+C.\n")
 
+    # --- Основной цикл ---
     try:
         for i, cmd in enumerate(commands, 1):
-            # Пропускаем пустые строки (на всякий случай)
             if not cmd:
                 continue
-            # Выводим прогресс (каждые 100 команд или если команда особенная)
-            if i % 100 == 0 or i == 1:
-                print(f"Команда {i}/{len(commands)}: {cmd}")
-
-            press_command(cmd, args.pause_after_z)
-
-            # Основная задержка после всей команды
+            # Показываем прогресс
+            print(f"[{i:4d}/{len(commands)}] {cmd}")
+            press_command(cmd)
+            # Основная задержка после команды
             time.sleep(args.delay)
     except KeyboardInterrupt:
-        print("\nПрерывание пользователя. Эмуляция остановлена.")
+        print("\n\nПрерывание пользователя. Эмуляция остановлена.")
     except Exception as e:
-        print(f"\nОшибка: {e}")
-
-    print("Эмуляция завершена.")
+        print(f"\nОшибка во время выполнения: {e}")
+    else:
+        print("\n✅ Эмуляция завершена успешно.")
+    
+    input("Нажмите Enter для выхода...")
 
 if __name__ == "__main__":
     main()
