@@ -10,20 +10,14 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v5
-
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
           python-version: '3.11'
-
       - name: Install dependencies
-        run: |
-          pip install pyinstaller pydirectinput
-
+        run: pip install pyinstaller pydirectinput keyboard
       - name: Build EXE
-        run: |
-          pyinstaller --onefile --console robot_emulator.py
-
+        run: pyinstaller --onefile --console robot_emulator.py
       - name: Upload artifact
         uses: actions/upload-artifact@v6
         with:
